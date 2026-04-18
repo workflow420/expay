@@ -1,0 +1,31 @@
+name: Dispatch FCM Push Notifications
+
+# Triggers exclusively via authenticated REST API Webhooks
+on:
+  repository_dispatch:
+    types: [send_fcm_notification]
+
+jobs:
+  dispatch_notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Codebase Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize Standard Node Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bootstrap Firebase Administration Module
+        run: npm install firebase-admin
+
+      - name: Execute Notification Pipeline Engine
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NOTIF_TITLE: ${{ github.event.client_payload.title }}
+          NOTIF_BODY: ${{ github.event.client_payload.body }}
+          NOTIF_TOKEN: ${{ github.event.client_payload.token }}
+          NOTIF_TOPIC: ${{ github.event.client_payload.topic }}
+        run: node .github/scripts/send_fcm.js
