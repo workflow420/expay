@@ -1,31 +1,95 @@
-name: Dispatch FCM Push Notifications
+const admin = require('firebase-admin');
 
-# Triggers exclusively via authenticated REST API Webhooks
-on:
-  repository_dispatch:
-    types: [send_fcm_notification]
+// 1. Read the raw secret JSON securely from the Action Environment
+const serviceAccountRaw = process.env.SERVICE_ACCOUNT_JSON;
+if (!serviceAccountRaw) {
+    console.error("FATAL ERROR: SERVICE_ACCOUNT_JSON secret is missing from GitHub Environment!");
+    process.exit(1);
+}
 
-jobs:
-  dispatch_notification:
-    runs-on: ubuntu-latest
+// 2. Safely parse the Service Account Config
+let serviceAccount;
+try {
+    serviceAccount = JSON.parse(serviceAccountRaw);
+} catch (error) {
+    console.error("FATAL ERROR: Failed to parse SERVICE_ACCOUNT_JSON. Make sure the secret contains valid JSON text.");
+    process.exit(1);
+}
 
-    steps:
-      - name: Codebase Checkout
-        uses: actions/checkout@v4
+// 3. Initialize Firebase Admin SDK purely using credentials
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
-      - name: Initialize Standard Node Environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+const title = process.env.NOTIF_TITLE;
+const body = process.env.NOTIF_BODY || "You have a new message from the administrator.";
+const tokenRaw = process.env.NOTIF_TOKEN;
+const topicRaw = process.env.NOTIF_TOPIC;
 
-      - name: Bootstrap Firebase Administration Module
-        run: npm install firebase-admin
+console.log(`Preparing to send message. Title: "${title || '(none)'}", Body: "${body}"`);
 
-      - name: Execute Notification Pipeline Engine
-        env:
-          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          NOTIF_TITLE: ${{ github.event.client_payload.title }}
-          NOTIF_BODY: ${{ github.event.client_payload.body }}
-          NOTIF_TOKEN: ${{ github.event.client_payload.token }}
-          NOTIF_TOPIC: ${{ github.event.client_payload.topic }}
-        run: node .github/scripts/send_fcm.js
+async function dispatchNotification() {
+    const notifyBlock = { body: body };
+    if (title && title.trim().length > 0) {
+        notifyBlock.title = title.trim();
+    }
+
+    if (tokenRaw && tokenRaw.trim() !== '') {
+        console.log(`ROUTE: Direct Token targeting active: [${tokenRaw.substring(0, 10)}...]`);
+        try {
+            const resp = await admin.messaging().send({
+                notification: notifyBlock,
+                token: tokenRaw.trim()
+            });
+            console.log("SUCCESS: Successfully dispatched Single FMC notification:", resp);
+            process.exit(0);
+        } catch (error) {
+            console.error("ERROR: Failed delivering single FCM push notification:", error);
+            process.exit(1);
+        }
+    } else if (topicRaw === 'all') {
+        console.log("ROUTE: Broadcast to All Users active - querying users collection for tokens...");
+        try {
+            const db = admin.firestore();
+            const snapshot = await db.collection('users').get();
+            const tokens = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.fcmToken && typeof data.fcmToken === 'string' && data.fcmToken.length > 10) {
+                    tokens.push(data.fcmToken);
+                }
+            });
+
+            if (tokens.length === 0) {
+                console.log("WARNING: No valid FCM tokens currently attached to any users. Exiting.");
+                process.exit(0);
+            }
+
+            console.log(`Discovered ${tokens.length} active devices. Initiating direct Multicast...`);
+            
+            const payload = {
+                notification: notifyBlock,
+                tokens: tokens
+            };
+
+            let response;
+            if (typeof admin.messaging().sendEachForMulticast === 'function') {
+                response = await admin.messaging().sendEachForMulticast(payload);
+            } else {
+                response = await admin.messaging().sendMulticast(payload); // legacy fallback
+            }
+
+            console.log(`SUCCESS: Broadcast complete! Success: ${response.successCount}, Failures: ${response.failureCount}`);
+            process.exit(0);
+
+        } catch (error) {
+            console.error("ERROR: Broadcast database query or dispatch failed:", error);
+            process.exit(1);
+        }
+    } else {
+        console.error("FATAL ERROR: Neither Token nor valid Topic was provided. Unable to route notification.");
+        process.exit(1);
+    }
+}
+
+dispatchNotification();
