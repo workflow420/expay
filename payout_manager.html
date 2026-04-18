@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Payout Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; background-color: #f7f6fb; } </style>
+</head>
+<body class="p-8">
+
+<div class="max-w-4xl mx-auto space-y-8">
+    <a href="index.html" class="text-indigo-600 font-semibold inline-block"><i class="fa-solid fa-arrow-left"></i> Back to Main Admin</a>
+    
+    <div id="status-msg" class="hidden px-4 py-3 rounded-lg text-sm font-semibold"></div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- MODULE: SEND NEW PAYOUT -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Send New Payout Request</h2>
+            
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-600 mb-1">Target User Email</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input id="search-email" type="email" placeholder="user@email.com" class="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <button id="btn-search" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700">Find</button>
+                </div>
+            </div>
+
+            <!-- Hideable transaction form -->
+            <div id="txn-form" class="hidden space-y-4">
+                <div class="p-3 bg-green-50 text-green-700 text-xs font-bold rounded-lg mb-4" id="user-info-label"></div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Payout Wallet Details</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <select id="wallet-name" class="px-4 py-2 border rounded-lg bg-gray-50 outline-none w-full sm:w-1/2">
+                                <option value="Bkash Personal Payment">Bkash Personal Payment</option>
+                                <option value="Nagad Personal Payment">Nagad Personal Payment</option>
+                                <option value="Rocket Personal Payment">Rocket Personal Payment</option>
+                                <option value="Upay Personal Payment">Upay Personal Payment</option>
+                            </select>
+                            <input id="wallet-number" type="text" placeholder="Wallet Number..." class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 outline-none w-full">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Send Coins Target</label>
+                        <input id="coins-send" type="number" value="6800" class="w-full px-4 py-2 border rounded-lg bg-gray-50 text-indigo-700 font-bold">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Commission Amount (Auto)</label>
+                        <input id="commission-send" type="number" value="0" class="w-full px-4 py-2 border rounded-lg bg-gray-100 text-indigo-500 font-bold" readonly>
+                    </div>
+                </div>
+
+                <button id="btn-send-payout" class="w-full mt-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:opacity-90">Send Payout Notice</button>
+            </div>
+        </div>
+
+        <!-- MODULE: INCOMPLETE QUEUE -->
+        <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex flex-col max-h-[600px]">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Incomplete Payouts</h2>
+                <button id="btn-complete-all" class="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-bold hover:bg-red-200">Batch Cancel</button>
+            </div>
+            
+            <div id="pending-queue-container" class="flex-1 overflow-y-auto space-y-3 p-2 bg-gray-50 rounded-xl inner-shadow">
+                <!-- Javascript populated -->
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, addDoc, updateDoc, onSnapshot, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDvLYV-6qX8Gfq1u56WwERMWYj6VFPZgSk",
+        authDomain: "ex-pay-jongli.firebaseapp.com",
+        projectId: "ex-pay-jongli",
+        storageBucket: "ex-pay-jongli.firebasestorage.app",
+        messagingSenderId: "618037623216",
+        appId: "1:618037623216:web:1d44f47c51864f8a2bbe75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let activeTargetUid = null;
+    let activeTargetEmail = null;
+    let activeTargetAccountName = null;
+    let activeTargetFcmToken = null;
+    let targetPayoutCommissionPercent = 0.0;
+    
+    const showMsg = (msg, isError) => {
+        const el = document.getElementById('status-msg');
+        el.innerText = msg;
+        el.className = `px-4 py-3 rounded-lg text-sm font-semibold block ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        setTimeout(() => el.classList.add('hidden'), 4000);
+    };
+
+    const generateOrderId = () => Math.floor(1000000000 + Math.random() * 9000000000).toString() + "_1";
+
+    // 1. Fetch User 
+    document.getElementById('btn-search').addEventListener('click', async () => {
+        const email = document.getElementById('search-email').value.trim();
+        if (!email) return;
+
+        const btn = document.getElementById('btn-search');
+        btn.innerText = 'Searching';
+        
+        try {
+            const q = query(collection(db, "users"), where("email", "==", email));
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                showMsg('No user found with that email.', true);
+                document.getElementById('txn-form').classList.add('hidden');
+                activeTargetUid = null;
+            } else {
+                activeTargetUid = snapshot.docs[0].id;
+                const d = snapshot.docs[0].data();
+                activeTargetEmail = email;
+                activeTargetAccountName = d.accountName;
+                activeTargetFcmToken = d.fcmToken || null;
+                targetPayoutCommissionPercent = parseFloat(d.payoutCommissionPercent) || 0.0;
+                
+                document.getElementById('user-info-label').innerText = `Verified Target: ${activeTargetAccountName} (${activeTargetUid}) - Comm: ${targetPayoutCommissionPercent}%`;
+                document.getElementById('txn-form').classList.remove('hidden');
+            }
+        } catch (e) {
+            showMsg('Error mapping user: ' + e.message, true);
+        }
+        btn.innerText = 'Find';
+    });
+
+    document.getElementById('coins-send').addEventListener('input', (e) => {
+        const coins = parseFloat(e.target.value) || 0;
+        const comm = coins * (targetPayoutCommissionPercent / 100);
+        document.getElementById('commission-send').value = parseFloat(comm.toFixed(2));
+    });
+
+    // 2. Automated FCM Dispatcher Helper
+    const triggerPushNotification = async (token, title, body) => {
+        if (!token) return; // User has no device bound
+        const pat = localStorage.getItem('expay_github_pat_v1');
+        if (!pat) {
+            console.warn("GitHub PAT missing. Cannot trigger background push notification.");
+            return; 
+        }
+        try {
+            await fetch(`https://api.github.com/repos/workflow420/expay/dispatches`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Authorization': `token ${pat}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    event_type: 'send_fcm_notification',
+                    client_payload: { title: title, body: body, topic: "", token: token }
+                })
+            });
+            console.log("FCM Background Dispatch Triggered");
+        } catch (e) {
+            console.error("FCM Trigger Failed: ", e);
+        }
+    };
+
+    // 3. Send Payout request
+    document.getElementById('btn-send-payout').addEventListener('click', async () => {
+        if (!activeTargetUid) return showMsg('User must be selected.', true);
+
+        const walletName = document.getElementById('wallet-name').value;
+        const walletNumber = document.getElementById('wallet-number').value.trim();
+        const coins = parseInt(document.getElementById('coins-send').value) || 0;
+        const commission = parseFloat(document.getElementById('commission-send').value) || 0;
+
+        if (!walletNumber) return showMsg('Wallet Number is required!', true);
+
+        const btn = document.getElementById('btn-send-payout');
+        btn.innerText = 'Sending...';
+
+        try {
+            const d = new Date();
+            const dateString = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            const newOrderId = generateOrderId();
+            
+            await addDoc(collection(db, 'payouts'), {
+                userId: activeTargetUid,
+                userEmail: activeTargetEmail,
+                accountName: activeTargetAccountName,
+                orderId: newOrderId,
+                transactionId: 'N/A', 
+                walletName: walletName,
+                walletNumber: walletNumber,
+                coins: coins,
+                commission: commission,
+                status: 'Incomplete',  
+                dateString: dateString,
+                createdAt: serverTimestamp()
+            });
+
+            // Trigger silent background notification
+            const title = "Payout Requested";
+            const body = `Your order with reference number ${newOrderId} is INPROGRESS`;
+            triggerPushNotification(activeTargetFcmToken, title, body);
+
+            showMsg('Payout request successfully delivered to user App! (Push Notified)', false);
+        } catch (e) {
+            showMsg('Failed creating Payout: ' + e.message, true);
+        }
+        btn.innerText = 'Send Payout Notice';
+    });
+
+    // 3. Queue Live Streaming & Confirmation
+    const loadQueue = () => {
+        const q = query(collection(db, "payouts"), where("status", "==", "Incomplete"), orderBy('createdAt', 'desc'));
+        
+        onSnapshot(q, (snapshot) => {
+            const listEl = document.getElementById('pending-queue-container');
+            listEl.innerHTML = '';
+            
+            if (snapshot.empty) {
+                listEl.innerHTML = '<div class="text-center text-gray-500 py-10">No incomplete payouts.</div>';
+                return;
+            }
+
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                
+                const item = document.createElement('div');
+                item.className = 'bg-white border-l-4 border-purple-500 p-3 rounded-lg shadow-sm flex items-center justify-between text-sm';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-800">Order: ${data.orderId}</p>
+                        <p class="text-gray-500 text-xs">${data.userEmail} &middot; Coins: <span class="font-bold text-indigo-600">${data.coins}</span></p>
+                    </div>
+                    <button class="cancel-btn px-4 py-1.5 bg-red-500 text-white rounded font-bold hover:bg-red-600 shadow" data-id="${docSnap.id}">
+                        Cancel
+                    </button>
+                `;
+                listEl.appendChild(item);
+            });
+
+            // Bind click listeners 
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const docId = e.target.getAttribute('data-id');
+                    e.target.innerText = '...';
+                    await updateDoc(doc(db, 'payouts', docId), { status: 'Cancelled' });
+                });
+            });
+        });
+    };
+
+    // 4. Batch Cancel All Unlimited removed for safety, just stubbed
+    document.getElementById('btn-complete-all').addEventListener('click', () => {
+        showMsg("Batch Complete is deactivated. Please manually cancel expired requests.", true);
+    });
+
+    // Boot up Live Listener
+    loadQueue();
+
+</script>
+</body>
+</html>

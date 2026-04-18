@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Master Bank Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; background-color: #f7f6fb; } </style>
+</head>
+<body class="p-8">
+
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+    <a href="index.html" class="text-indigo-600 font-semibold mb-6 inline-block"><i class="fa-solid fa-arrow-left"></i> Back to Create Account</a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">User Bank Management</h1>
+    
+    <div id="status-msg" class="hidden px-4 py-3 rounded-lg mb-6 text-sm font-semibold"></div>
+
+    <!-- Step 1: Find User -->
+    <div class="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+        <h2 class="font-bold text-lg mb-4">1. Identify User</h2>
+        <div class="flex flex-col sm:flex-row gap-4">
+            <input id="search-email" type="email" placeholder="Enter user's email address..." class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+            <button id="btn-search" class="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">Find User</button>
+        </div>
+        <div id="user-info" class="hidden mt-4 text-sm text-green-700 font-semibold bg-green-50 p-3 rounded-lg"></div>
+    </div>
+
+    <!-- Step 2: Add Bank -->
+    <div id="bank-form-section" class="hidden mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+        <div class="flex justify-between items-center mb-4">
+            <h2 id="bank-form-title" class="font-bold text-lg">2. Assign New Wallet / Bank</h2>
+            <button id="btn-cancel-edit" class="hidden text-sm px-3 py-1 bg-red-100 text-red-600 font-bold rounded hover:bg-red-200">Cancel Edit</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Wallet Type</label>
+                <input id="wallet-type" type="text" value="Bkash Personal Payment" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Daily Limit</label>
+                <input id="daily-limit" type="number" value="300000" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Wallet Number</label>
+                <input id="wallet-number" type="text" placeholder="01755160675" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Wallet Name</label>
+                <input id="wallet-name" type="text" placeholder="01755160675-BKASH" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-4 mb-6 items-center">
+            <label class="flex items-center gap-2 cursor-pointer w-full sm:w-auto">
+                <input type="checkbox" id="payin-enabled" checked class="w-4 h-4 text-green-600 rounded">
+                <span class="text-sm font-bold text-gray-700">Payin Enabled</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer w-full sm:w-auto">
+                <input type="checkbox" id="payout-enabled" class="w-4 h-4 text-orange-500 rounded">
+                <span class="text-sm font-bold text-gray-700">Payout Enabled</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer sm:ml-auto w-full sm:w-auto">
+                <span class="text-sm font-bold text-gray-700">Status Active</span>
+                <input type="checkbox" id="status-active" checked class="w-4 h-4 text-indigo-600 rounded">
+            </label>
+        </div>
+
+        <button id="btn-add-bank" class="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 shadow-lg">Assign Bank to User</button>
+    </div>
+
+    <!-- Active Banks List -->
+    <div id="banks-list-section" class="hidden">
+        <h2 class="font-bold text-lg mb-4 text-gray-800">Assigned Wallets</h2>
+        <div id="banks-container" class="space-y-4"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, setDoc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDvLYV-6qX8Gfq1u56WwERMWYj6VFPZgSk",
+        authDomain: "ex-pay-jongli.firebaseapp.com",
+        projectId: "ex-pay-jongli",
+        storageBucket: "ex-pay-jongli.firebasestorage.app",
+        messagingSenderId: "618037623216",
+        appId: "1:618037623216:web:1d44f47c51864f8a2bbe75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    let targetUid = null;
+    let activeEditBankId = null;
+    let activeBanksData = {};
+
+    const showMsg = (msg, isError) => {
+        const el = document.getElementById('status-msg');
+        el.innerText = msg;
+        el.className = `px-4 py-3 rounded-lg mb-6 text-sm font-semibold block ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    };
+
+    const fetchUserBanks = async (uid) => {
+        const banksRef = collection(db, "users", uid, "banks");
+        const snapshot = await getDocs(banksRef);
+        const container = document.getElementById('banks-container');
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+            container.innerHTML = '<p class="text-sm text-gray-500">No wallets assigned to this user yet.</p>';
+            activeBanksData = {};
+            return;
+        }
+
+        activeBanksData = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            activeBanksData[doc.id] = data;
+            container.innerHTML += `
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-indigo-900">${data.walletType}</h3>
+                        <p class="text-xs text-gray-600 mt-1">Number: ${data.walletNumber} | Limit: ${data.dailyLimit} | Status: ${data.status}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center mt-2 sm:mt-0">
+                        <span class="px-2 py-1 text-[10px] font-bold rounded ${data.payinEnabled ? 'bg-green-200 text-green-800' : 'bg-gray-200'}">Payin</span>
+                        <span class="px-2 py-1 text-[10px] font-bold rounded ${data.payoutEnabled ? 'bg-orange-200 text-orange-800' : 'bg-gray-200'}">Payout</span>
+                        <button class="edit-bank-btn px-3 py-1 bg-blue-100 text-blue-700 font-bold text-xs rounded hover:bg-blue-200 shadow-sm" data-id="${doc.id}">Edit</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.querySelectorAll('.edit-bank-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const bId = e.target.getAttribute('data-id');
+                const bData = activeBanksData[bId];
+                if (!bData) return;
+                
+                activeEditBankId = bId;
+                document.getElementById('bank-form-title').innerText = "2. Edit Existing Wallet / Bank";
+                document.getElementById('btn-add-bank').innerText = "Update Assigned Bank";
+                document.getElementById('btn-cancel-edit').classList.remove('hidden');
+
+                document.getElementById('wallet-type').value = bData.walletType;
+                document.getElementById('daily-limit').value = bData.dailyLimit;
+                document.getElementById('wallet-number').value = bData.walletNumber;
+                document.getElementById('wallet-name').value = bData.walletName;
+                document.getElementById('payin-enabled').checked = bData.payinEnabled;
+                document.getElementById('payout-enabled').checked = bData.payoutEnabled;
+                document.getElementById('status-active').checked = (bData.status === 'Active');
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    };
+
+    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+        activeEditBankId = null;
+        document.getElementById('bank-form-title').innerText = "2. Assign New Wallet / Bank";
+        document.getElementById('btn-add-bank').innerText = "Assign Bank to User";
+        document.getElementById('btn-cancel-edit').classList.add('hidden');
+        
+        document.getElementById('wallet-type').value = "Bkash Personal Payment";
+        document.getElementById('daily-limit').value = "300000";
+        document.getElementById('wallet-number').value = "";
+        document.getElementById('wallet-name').value = "";
+    });
+
+    document.getElementById('btn-search').addEventListener('click', async () => {
+        const email = document.getElementById('search-email').value.trim();
+        if (!email) return;
+
+        const btn = document.getElementById('btn-search');
+        btn.innerText = 'Searching...';
+
+        try {
+            const q = query(collection(db, "users"), where("email", "==", email));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                showMsg('No user found with this email.', true);
+                targetUid = null;
+                document.getElementById('bank-form-section').classList.add('hidden');
+                document.getElementById('banks-list-section').classList.add('hidden');
+                document.getElementById('user-info').classList.add('hidden');
+            } else {
+                const userDoc = querySnapshot.docs[0];
+                targetUid = userDoc.data().uid;
+                
+                document.getElementById('user-info').innerText = `Target Account: ${userDoc.data().accountName} (${targetUid})`;
+                document.getElementById('user-info').classList.remove('hidden');
+                
+                document.getElementById('bank-form-section').classList.remove('hidden');
+                document.getElementById('banks-list-section').classList.remove('hidden');
+                
+                fetchUserBanks(targetUid);
+            }
+        } catch (e) {
+            showMsg('Error searching: ' + e.message, true);
+        }
+        btn.innerText = 'Find User';
+    });
+
+    document.getElementById('btn-add-bank').addEventListener('click', async () => {
+        if (!targetUid) return;
+        const btn = document.getElementById('btn-add-bank');
+        const originalText = btn.innerText;
+        btn.innerText = 'Saving...';
+
+        const data = {
+            walletType: document.getElementById('wallet-type').value,
+            dailyLimit: parseInt(document.getElementById('daily-limit').value) || 0,
+            walletNumber: document.getElementById('wallet-number').value,
+            walletName: document.getElementById('wallet-name').value,
+            payinEnabled: document.getElementById('payin-enabled').checked,
+            payoutEnabled: document.getElementById('payout-enabled').checked,
+            status: document.getElementById('status-active').checked ? 'Active' : 'Inactive',
+            successAmount: 0
+        };
+
+        // Don't overwrite createdAt if updating
+        if (!activeEditBankId) data.createdAt = serverTimestamp();
+
+        try {
+            if (activeEditBankId) {
+                await updateDoc(doc(db, "users", targetUid, "banks", activeEditBankId), data);
+                showMsg('Bank updated successfully!', false);
+                document.getElementById('btn-cancel-edit').click(); // reset state
+            } else {
+                await addDoc(collection(db, "users", targetUid, "banks"), data);
+                showMsg('Bank assigned successfully!', false);
+            }
+            fetchUserBanks(targetUid);
+        } catch (e) {
+            showMsg('Failed to save bank: ' + e.message, true);
+        }
+        btn.innerText = originalText;
+    });
+</script>
+</body>
+</html>

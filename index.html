@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExPay Admin Creator</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              logo: ['Nunito', 'sans-serif']
+            },
+            colors: {
+              primary: '#5949d8',
+              secondary: '#47c090',
+              bgLight: '#f7f6fb'
+            }
+          }
+        }
+      }
+    </script>
+    
+    <style>
+        body { background-color: #f7f6fb; }
+        .blobs-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.35; animation: pulse-slow 6s infinite alternate; }
+        .blob-3 { bottom: 15%; right: 10%; width: 180px; height: 180px; background: #5949d8; }
+        .blob-4 { bottom: -20px; left: 10%; width: 150px; height: 150px; background: #47c090; }
+        .content-layer { position: relative; z-index: 10; }
+        @keyframes pulse-slow { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(1.1); opacity: 0.5; } }
+        .app-container { max-width: 400px; margin: 0 auto; min-height: 100vh; background: white; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); overflow-x: hidden; }
+    </style>
+</head>
+<body class="flex justify-center bg-gray-100">
+
+<div class="app-container">
+    <div id="register-view" class="app-view relative min-h-screen">
+        <div class="blobs-container">
+            <div class="blob blob-3"></div><div class="blob blob-4"></div>
+        </div>
+        
+        <div class="content-layer p-6 pt-12 flex flex-col justify-center min-h-screen">
+            <div class="text-[52px] font-logo font-bold text-center tracking-tight mb-6">
+                <span class="text-[#519f8e]">ex</span><span class="text-[#3b4148]">pay</span> <span class="text-[#5949d8] text-xl">Admin</span>
+            </div>
+
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Create New Account</h1>
+
+            <div id="register-error" class="hidden text-sm text-center mb-4 py-2 rounded-lg font-semibold"></div>
+
+            <div class="bg-white rounded-3xl p-6 py-8 shadow-lg border border-gray-100">
+                <div class="space-y-4 mb-8">
+                    <!-- Account Name -->
+                    <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner">
+                        <i class="fa-regular fa-user text-gray-400 mr-3"></i>
+                        <input id="register-name" type="text" placeholder="Account Name (e.g. SMEX06)" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium">
+                    </div>
+                    <!-- Email -->
+                    <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner">
+                        <i class="fa-regular fa-envelope text-gray-400 mr-3"></i>
+                        <input id="register-email" type="email" placeholder="Email ID" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium">
+                    </div>
+                    <!-- Password -->
+                    <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner">
+                        <i class="fa-solid fa-lock text-gray-400 mr-3"></i>
+                        <input id="register-password" type="password" placeholder="Password" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium">
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <!-- Payin Commission -->
+                        <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner w-1/2">
+                            <i class="fa-solid fa-percent text-green-500 mr-3"></i>
+                            <input id="register-payin-commission" type="number" placeholder="Payin Comm (%)" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium" value="0.0">
+                        </div>
+                        <!-- Payout Commission -->
+                        <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner w-1/2">
+                            <i class="fa-solid fa-percent text-purple-500 mr-3"></i>
+                            <input id="register-payout-commission" type="number" placeholder="Payout Comm (%)" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium" value="0.0">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-register" class="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-90 transition-opacity flex justify-center items-center">
+                    Create App Account
+                </button>
+
+                <div class="mt-4 text-center space-y-2 flex flex-col">
+                    <a href="notifications.html" class="text-sm font-bold text-orange-600 underline border border-dashed border-orange-200 bg-orange-50 py-1.5 rounded-lg mb-2 shadow-sm"><i class="fa-solid fa-bell text-orange-500 mr-1"></i> Broadcast Push Notifications</a>
+                    <a href="user_list.html" class="text-sm font-bold text-gray-700 underline"><i class="fa-solid fa-users text-gray-500 mr-1"></i> Global User Directory (Balances)</a>
+                    <a href="bank_management.html" class="text-sm font-bold text-primary underline mt-2">Go to Bank Management System</a>
+                    <a href="payin_manager.html" class="text-sm font-bold text-green-600 underline">Send Payin Orders</a>
+                    <a href="payout_manager.html" class="text-sm font-bold text-purple-600 underline">Manage Payout Defaults</a>
+                    <a href="synced_sms.html" class="text-sm font-bold text-pink-600 underline">View Synced App SMS Inbox</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDvLYV-6qX8Gfq1u56WwERMWYj6VFPZgSk",
+        authDomain: "ex-pay-jongli.firebaseapp.com",
+        projectId: "ex-pay-jongli",
+        storageBucket: "ex-pay-jongli.firebasestorage.app",
+        messagingSenderId: "618037623216",
+        appId: "1:618037623216:web:1d44f47c51864f8a2bbe75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const showMessage = (elementId, message, type = 'error') => {
+        const el = document.getElementById(elementId);
+        el.innerText = message;
+        if (type === 'error') {
+            el.classList.remove('bg-green-100', 'text-green-600');
+            el.classList.add('bg-red-100', 'text-red-500');
+        } else {
+            el.classList.add('bg-green-100', 'text-green-600');
+            el.classList.remove('bg-red-100', 'text-red-500');
+        }
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    };
+
+    document.getElementById('btn-register').addEventListener('click', () => {
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const payinComm = parseFloat(document.getElementById('register-payin-commission').value) || 0.0;
+        const payoutComm = parseFloat(document.getElementById('register-payout-commission').value) || 0.0;
+        const btn = document.getElementById('btn-register');
+
+        if (!name || !email || !password) return showMessage('register-error', 'Please enter Name, Email, and Password');
+        if (password.length < 6) return showMessage('register-error', 'Password should be at least 6 characters');
+
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> creating...';
+
+        createUserWithEmailAndPassword(auth, email, password)
+            .then(async (userCredential) => {
+                const user = userCredential.user;
+                
+                // Save to Firestore
+                try {
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid,
+                        email: email,
+                        accountName: name,
+                        availableCredit: 0.0,
+                        commission: 0.0,
+                        payinCommissionPercent: payinComm,
+                        payoutCommissionPercent: payoutComm
+                    });
+                    
+                    showMessage('register-error', 'App account created and saved to database successfully!', 'success');
+                    
+                    document.getElementById('register-name').value = '';
+                    document.getElementById('register-email').value = '';
+                    document.getElementById('register-password').value = '';
+                    document.getElementById('register-payin-commission').value = '0.0';
+                    document.getElementById('register-payout-commission').value = '0.0';
+                } catch (e) {
+                    showMessage('register-error', 'Account Created Auth but Failed to save DB: ' + e.message, 'error');
+                }
+                btn.innerHTML = 'Create App Account';
+            })
+            .catch((error) => {
+                showMessage('register-error', error.message, 'error');
+                btn.innerHTML = 'Create App Account';
+            });
+    });
+</script>
+
+</body>
+</html>
