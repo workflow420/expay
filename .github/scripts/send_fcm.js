@@ -22,19 +22,22 @@ admin.initializeApp({
 });
 
 // 4. Retrieve Dispatch Payload elements sent securely from HTML Admin
-const title = process.env.NOTIF_TITLE || "Admin Notice";
+const title = process.env.NOTIF_TITLE;
 const body = process.env.NOTIF_BODY || "You have a new message from the administrator.";
 const token = process.env.NOTIF_TOKEN;
 const topic = process.env.NOTIF_TOPIC;
 
-console.log(`Preparing to send message "${title}" - "${body}"`);
+console.log(`Preparing to send message. Title: "${title || '(none)'}", Body: "${body}"`);
 
 const message = {
     notification: {
-        title: title,
         body: body
     }
 };
+
+if (title && title.trim().length > 0) {
+    message.notification.title = title.trim();
+}
 
 // Evaluate routing: Either Token Targeted or Broadcast Topic
 if (token && token.trim() !== '') {
