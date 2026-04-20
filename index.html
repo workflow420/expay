@@ -61,6 +61,11 @@
                         <i class="fa-regular fa-user text-gray-400 mr-3"></i>
                         <input id="register-name" type="text" placeholder="Account Name (e.g. SMEX06)" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium">
                     </div>
+                    <!-- Mobile Number -->
+                    <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner">
+                        <i class="fa-solid fa-phone text-gray-400 mr-3"></i>
+                        <input id="register-mobile" type="tel" placeholder="Mobile Number (e.g. +880...)" class="bg-transparent w-full outline-none text-gray-700 text-sm font-medium">
+                    </div>
                     <!-- Email -->
                     <div class="bg-[#f3f4f6] rounded-xl flex items-center px-4 py-3.5 shadow-inner">
                         <i class="fa-regular fa-envelope text-gray-400 mr-3"></i>
@@ -138,6 +143,7 @@
     document.getElementById('btn-register').addEventListener('click', () => {
         const name = document.getElementById('register-name').value;
         const email = document.getElementById('register-email').value;
+        const mobile = document.getElementById('register-mobile').value.trim();
         const password = document.getElementById('register-password').value;
         const payinComm = parseFloat(document.getElementById('register-payin-commission').value) || 0.0;
         const payoutComm = parseFloat(document.getElementById('register-payout-commission').value) || 0.0;
@@ -154,9 +160,14 @@
                 
                 // Save to Firestore
                 try {
+                    // Generate generic 12-digit wallet ID
+                    const generatedWalletId = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+
                     await setDoc(doc(db, "users", user.uid), {
                         uid: user.uid,
                         email: email,
+                        mobile: mobile || "N/A",
+                        walletId: generatedWalletId,
                         accountName: name,
                         availableCredit: 0.0,
                         commission: 0.0,
@@ -167,6 +178,7 @@
                     showMessage('register-error', 'App account created and saved to database successfully!', 'success');
                     
                     document.getElementById('register-name').value = '';
+                    document.getElementById('register-mobile').value = '';
                     document.getElementById('register-email').value = '';
                     document.getElementById('register-password').value = '';
                     document.getElementById('register-payin-commission').value = '0.0';
