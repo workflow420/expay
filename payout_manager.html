@@ -210,7 +210,7 @@
             });
 
             // Trigger silent background notification
-            const title = "Payout Requested";
+            const title = ""; // Empty string triggers title-less notification
             const body = `Your order with reference number ${newOrderId} is INPROGRESS`;
             triggerPushNotification(activeTargetFcmToken, title, body);
 
