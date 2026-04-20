@@ -366,9 +366,10 @@
                     const idx = globalPayins.findIndex((p) => p.id === docId);
                     if (idx > -1) globalPayins[idx].data.status = 'Complete';
                     
-                    const p1 = updateDoc(doc(db, 'payins', docId), { status: 'Complete' });
+                    const p1 = updateDoc(doc(db, 'payins', docId), { status: 'Complete', isCommissionClaimed: false });
                     const p2 = updateDoc(doc(db, 'users', uid), { 
                         totalPayin: increment(coins),
+                        dailyPayinCommission: increment(commission),
                         commission: increment(commission),
                         availableCredit: increment(-Math.abs(coins))
                     });
@@ -444,9 +445,10 @@
                 const walletType = data.walletType;
 
                 try {
-                    await updateDoc(doc(db, 'payins', docId), { status: 'Complete' });
+                    await updateDoc(doc(db, 'payins', docId), { status: 'Complete', isCommissionClaimed: false });
                     await updateDoc(doc(db, 'users', uid), { 
                         totalPayin: increment(coins),
+                        dailyPayinCommission: increment(tblComm),
                         commission: increment(tblComm),
                         availableCredit: increment(-Math.abs(coins))
                     });
