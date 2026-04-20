@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Help Center Setup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; background-color: #f7f6fb; } </style>
+</head>
+<body class="p-8">
+
+<div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div>
+            <a href="index.html" class="text-teal-600 font-semibold inline-block mb-2 hover:text-teal-800"><i class="fa-solid fa-arrow-left"></i> Back to Main Menu</a>
+            <h1 class="text-3xl font-extrabold text-gray-800">App Configuration</h1>
+            <p class="text-sm text-gray-500 mt-1">Manage global app settings like the Help Center link.</p>
+        </div>
+    </div>
+    
+    <div id="status-msg" class="hidden px-4 py-3 rounded-lg text-sm font-semibold"></div>
+
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        <form id="app-config-form" class="space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Telegram Support Link (Channel or User)</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-3.5 text-blue-400"><i class="fa-brands fa-telegram text-lg"></i></span>
+                    <input id="telegram_link" type="text" placeholder="e.g. https://t.me/yourname" class="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-medium text-gray-800 transition">
+                </div>
+                <p class="text-xs text-gray-400 mt-2 italic">Note: This link will be opened when users click "Help Center" in the mobile app.</p>
+            </div>
+
+            <button type="submit" id="btn-save" class="w-full mt-4 py-4 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition disabled:opacity-50">
+                <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save Configuration
+            </button>
+        </form>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDvLYV-6qX8Gfq1u56WwERMWYj6VFPZgSk",
+        authDomain: "ex-pay-jongli.firebaseapp.com",
+        projectId: "ex-pay-jongli",
+        storageBucket: "ex-pay-jongli.firebasestorage.app",
+        messagingSenderId: "618037623216",
+        appId: "1:618037623216:web:1d44f47c51864f8a2bbe75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Config document used by the app
+    const configDocRef = doc(db, 'settings', 'app_config');
+
+    const showMsg = (msg, isError) => {
+        const el = document.getElementById('status-msg');
+        el.innerText = msg;
+        el.className = `px-4 py-3 rounded-lg mb-6 text-sm font-semibold block ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        setTimeout(() => el.classList.add('hidden'), 5000);
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    };
+
+    const btnSave = document.getElementById('btn-save');
+
+    // Fetch existing link
+    const loadDetails = async () => {
+        try {
+            const snap = await getDoc(configDocRef);
+            if(snap.exists()) {
+                const data = snap.data();
+                document.getElementById('telegram_link').value = data.telegram_link || '';
+            }
+        } catch(e) {
+            console.error("Error fetching config", e);
+            showMsg("Failed to load existing settings", true);
+        }
+    };
+
+    document.getElementById('app-config-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Saving...';
+        btnSave.disabled = true;
+
+        let link = document.getElementById('telegram_link').value.trim();
+        
+        // Auto-fix telegram handles or missing schemes
+        if (link.startsWith('@')) {
+            link = 'https://t.me/' + link.substring(1);
+        } else if (link && !link.startsWith('http')) {
+            link = 'https://' + link;
+        }
+
+        const data = {
+            telegram_link: link,
+            updatedAt: new Date().toISOString()
+        };
+
+        try {
+            await setDoc(configDocRef, data, { merge: true });
+            showMsg('Telegram link updated successfully!', false);
+        } catch(error) {
+            console.error(error);
+            showMsg('Error updating settings: ' + error.message, true);
+        }
+
+        btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Save Configuration';
+        btnSave.disabled = false;
+    });
+
+    // Initial load
+    loadDetails();
+</script>
+</body>
+</html>

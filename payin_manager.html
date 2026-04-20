@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Payin Manager Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Inter', sans-serif; background-color: #f7f6fb; } </style>
+</head>
+<body class="p-8">
+
+<div class="max-w-7xl mx-auto space-y-8">
+    <div class="flex justify-between items-center">
+        <a href="index.html" class="text-indigo-600 font-semibold inline-block"><i class="fa-solid fa-arrow-left"></i> Back to Main Admin</a>
+        <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">Payin Hub</h1>
+    </div>
+    
+    <div id="status-msg" class="hidden px-4 py-3 rounded-lg text-sm font-semibold"></div>
+
+    <!-- MODULE 1: SEND NEW PAYIN -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 max-w-4xl mx-auto">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Create Manual Payin Sequence</h2>
+        
+        <div class="mb-6 flex gap-4 items-end">
+            <div class="flex-1">
+                <label class="block text-xs font-bold text-gray-600 mb-2">Target User Email</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input id="search-email" type="email" placeholder="Search Target App User..." class="w-full px-5 py-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-indigo-500 outline-none transition shadow-inner font-medium">
+                    <button id="btn-search" class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-md transition">Look Up</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="txn-form" class="hidden bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <div class="px-4 py-2 bg-green-100 text-green-800 font-bold rounded-lg mb-6 inline-block shadow-sm" id="user-info-label"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-600 mb-2">Assign Bank Configuration</label>
+                    <select id="wallet-select" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white outline-none font-bold text-gray-700"></select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-2">Customer Mobile Number</label>
+                    <input id="mobile-num" type="text" placeholder="e.g. 017XXXXXX" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-2">TxnID TrxID</label>
+                    <input id="txn-id" type="text" placeholder="e.g. ABCD12345" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white font-mono uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-2">Release App Coins</label>
+                    <input id="coins-send" type="number" value="200" class="w-full px-4 py-3 border-2 border-indigo-200 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-lg">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-2">Agency Commission (Auto)</label>
+                    <input id="commission-send" type="number" value="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 font-bold text-gray-500 text-lg" readonly>
+                </div>
+            </div>
+
+            <button id="btn-send-payin" class="w-full mt-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-extrabold text-lg rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all">Issue Payin Instruction to App</button>
+        </div>
+    </div>
+
+    <!-- MODULE 2: DATATABLE DASHBOARD (Advanced Filters) -->
+    <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
+        
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4 border-b pb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">Advanced Log Engine</h2>
+                <p class="text-sm font-semibold text-gray-500 mt-1" id="log-count">Fetching secure logs...</p>
+            </div>
+
+            <!-- Deep Filters -->
+            <div class="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <div class="flex items-center gap-2 px-2 w-full sm:w-auto">
+                    <input type="checkbox" id="chk-pending" class="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                    <label for="chk-pending" class="text-sm font-bold text-gray-700 cursor-pointer">Queue Only</label>
+                </div>
+                
+                <div class="hidden sm:block h-8 w-px bg-gray-300"></div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <input type="date" id="date-start" class="px-3 py-2 text-sm border border-gray-300 rounded-lg font-bold text-gray-600 bg-white shadow-sm flex-1 sm:flex-none">
+                    <span class="text-xs text-gray-400 font-bold block">to</span>
+                    <input type="date" id="date-end" class="px-3 py-2 text-sm border border-gray-300 rounded-lg font-bold text-gray-600 bg-white shadow-sm flex-1 sm:flex-none">
+                </div>
+
+                <div class="hidden sm:block h-8 w-px bg-gray-300"></div>
+
+                <div class="relative w-full sm:w-auto">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+                    <input type="text" id="search-raw" placeholder="TxnID / OrderID..." class="px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg font-mono w-full sm:w-48 shadow-sm">
+                </div>
+
+                <button id="btn-complete-all" class="w-full sm:w-auto sm:ml-2 px-4 py-2 bg-indigo-100 text-indigo-700 font-bold rounded-lg shadow-sm hover:bg-indigo-200 text-sm transition">Auto Complete Current View</button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-y border-gray-200 text-gray-500 text-xs uppercase tracking-widest font-extrabold">
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Identifier Traces</th>
+                        <th class="p-4">Account Trace</th>
+                        <th class="p-4">Gateway Origin</th>
+                        <th class="p-4">Asset Matrix</th>
+                        <th class="p-4 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-tbody" class="divide-y divide-gray-100">
+                    <!-- Javascript populates table -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, addDoc, updateDoc, onSnapshot, serverTimestamp, orderBy, increment, limit } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDvLYV-6qX8Gfq1u56WwERMWYj6VFPZgSk",
+        authDomain: "ex-pay-jongli.firebaseapp.com",
+        projectId: "ex-pay-jongli",
+        storageBucket: "ex-pay-jongli.firebasestorage.app",
+        messagingSenderId: "618037623216",
+        appId: "1:618037623216:web:1d44f47c51864f8a2bbe75"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let activeTargetUid = null;
+    let activeTargetEmail = null;
+    let targetPayinCommissionPercent = 0.0;
+
+    let globalPayins = []; // Local cache
+    
+    // Set default dates
+    const td = new Date();
+    const isoToday = td.getFullYear() + '-' + String(td.getMonth() + 1).padStart(2, '0') + '-' + String(td.getDate()).padStart(2, '0');
+    document.getElementById('date-start').value = isoToday;
+    document.getElementById('date-end').value = isoToday;
+    
+    const showMsg = (msg, isError) => {
+        const el = document.getElementById('status-msg');
+        el.innerText = msg;
+        el.className = `px-4 py-3 rounded-lg text-sm font-semibold block ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    };
+
+    const generateOrderId = () => Math.floor(1000000000 + Math.random() * 9000000000).toString();
+
+    // 1. Fetch User & Populate Dropdown
+    document.getElementById('btn-search').addEventListener('click', async () => {
+        const email = document.getElementById('search-email').value.trim();
+        if (!email) return;
+
+        const btn = document.getElementById('btn-search');
+        btn.innerText = 'Searching';
+        
+        try {
+            const q = query(collection(db, "users"), where("email", "==", email));
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                showMsg('No mapped identity blocks found on this gateway.', true);
+                document.getElementById('txn-form').classList.add('hidden');
+                activeTargetUid = null;
+            } else {
+                activeTargetUid = snapshot.docs[0].id;
+                activeTargetEmail = email;
+                targetPayinCommissionPercent = parseFloat(snapshot.docs[0].data().payinCommissionPercent) || 0.0;
+                document.getElementById('user-info-label').innerText = `Native Hook Established: ${snapshot.docs[0].data().accountName} (${activeTargetUid}) - Comm: ${targetPayinCommissionPercent}%`;
+                
+                const banksSnapshot = await getDocs(collection(db, "users", activeTargetUid, "banks"));
+                const selectEl = document.getElementById('wallet-select');
+                selectEl.innerHTML = '';
+                
+                if (banksSnapshot.empty) {
+                    selectEl.innerHTML = '<option value="">Network Topology Missing! Fix Bank config first.</option>';
+                } else {
+                    banksSnapshot.forEach(doc => {
+                        const bank = doc.data();
+                        const opt = document.createElement('option');
+                        opt.value = `${bank.walletType}::${bank.walletNumber}`;
+                        opt.innerText = `${bank.walletType} - ${bank.walletName}`;
+                        selectEl.appendChild(opt);
+                    });
+                }
+                
+                document.getElementById('txn-form').classList.remove('hidden');
+            }
+        } catch (e) {
+            showMsg('Error tracing payload: ' + e.message, true);
+        }
+        btn.innerText = 'Look Up';
+    });
+    
+    document.getElementById('coins-send').addEventListener('input', (e) => {
+        const coins = parseFloat(e.target.value) || 0;
+        const comm = coins * (targetPayinCommissionPercent / 100);
+        document.getElementById('commission-send').value = parseFloat(comm.toFixed(2));
+    });
+
+    // 2. Send Payin request
+    document.getElementById('btn-send-payin').addEventListener('click', async () => {
+        const walletVal = document.getElementById('wallet-select').value;
+        if (!walletVal || !activeTargetUid) return showMsg('Critical Failure: Drop pipeline not secured.', true);
+
+        const mobile = document.getElementById('mobile-num').value.trim();
+        const txnId = document.getElementById('txn-id').value.trim();
+        const coins = parseInt(document.getElementById('coins-send').value) || 0;
+        const commission = parseInt(document.getElementById('commission-send').value) || 0;
+
+        const btn = document.getElementById('btn-send-payin');
+        btn.innerText = 'Releasing...';
+
+        try {
+            const [walletType, agentNumber] = walletVal.split('::');
+            
+            const d = new Date();
+            const dateString = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            
+            await addDoc(collection(db, 'payins'), {
+                userId: activeTargetUid,
+                userEmail: activeTargetEmail,
+                orderId: generateOrderId(),
+                walletType: walletType,
+                agentNumber: agentNumber,
+                mobileNumber: mobile,
+                transactionId: txnId,
+                coins: coins,
+                commission: commission,
+                status: 'Pending',
+                dateString: dateString,
+                createdAt: serverTimestamp()
+            });
+
+            showMsg('Instruction block confirmed into cloud storage array.', false);
+            document.getElementById('mobile-num').value = '';
+            document.getElementById('txn-id').value = '';
+            
+        } catch (e) {
+            showMsg('Block reject: ' + e.message, true);
+        }
+        btn.innerText = 'Issue Payin Instruction to App';
+    });
+
+
+    // ===================================
+    // FILTER ENGINE
+    // ===================================
+
+    const renderTable = () => {
+        const tbody = document.getElementById('logs-tbody');
+        tbody.innerHTML = '';
+
+        const filterPending = document.getElementById('chk-pending').checked;
+        const startDate = document.getElementById('date-start').value;
+        const endDate = document.getElementById('date-end').value;
+        const rawSearch = document.getElementById('search-raw').value.trim().toLowerCase();
+
+        let targetData = globalPayins.filter(doc => {
+            const d = doc.data;
+            // 1. Raw Search Override Array (ignores date)
+            if (rawSearch) {
+                if ((d.orderId && d.orderId.toLowerCase().includes(rawSearch)) || 
+                    (d.transactionId && d.transactionId.toLowerCase().includes(rawSearch))) {
+                    if (filterPending && (d.status !== 'Pending')) return false;
+                    return true;
+                }
+                return false;
+            }
+
+            // 2. Strict Filter Check Checkbox
+            if (filterPending && (d.status !== 'Pending')) return false;
+
+            // 3. Date check array
+            if (startDate && endDate) {
+               if (!d.dateString) return false;
+               if (d.dateString >= startDate && d.dateString <= endDate) return true;
+               return false;
+            }
+
+            return true;
+        });
+
+        document.getElementById('log-count').innerText = `Showing ${targetData.length} records parsed securely via filter config.`;
+
+        if (targetData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 font-bold"><i class="fa-solid fa-server text-3xl mb-3 block"></i> No blocks found in data pool.</td></tr>`;
+            return;
+        }
+
+        targetData.forEach((pack) => {
+            const data = pack.data;
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50 transition border-b border-gray-50";
+            
+            const isPending = data.status === 'Pending';
+            
+            tr.innerHTML = `
+                <td class="p-4">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${isPending ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-green-100 text-green-600 border border-green-200'}">
+                        ${data.status}
+                    </span><br><span class="text-[10px] text-gray-400 font-bold ml-1">${data.dateString}</span>
+                </td>
+                <td class="p-4 font-mono text-sm text-gray-800">
+                    <span class="text-[11px] text-gray-400 font-bold block tracking-wider">ORDER:</span>
+                    #${data.orderId}<br>
+                    <span class="text-[11px] text-gray-400 font-bold mt-1 block tracking-wider">TXN ID:</span>
+                    <span class="text-indigo-600">${data.transactionId}</span>
+                </td>
+                <td class="p-4">
+                    <p class="text-sm font-bold text-gray-800">${data.userEmail}</p>
+                    <p class="text-xs text-gray-500 font-mono mt-0.5">${data.userId}</p>
+                </td>
+                <td class="p-4">
+                    <p class="text-sm font-bold text-gray-800">${data.walletType}</p>
+                    <p class="text-xs text-gray-600 mt-0.5">Agent: <span class="font-mono">${data.agentNumber}</span></p>
+                    <p class="text-xs text-gray-400">Target: <span class="font-mono">${data.mobileNumber}</span></p>
+                </td>
+                <td class="p-4">
+                    <p class="text-lg font-black text-indigo-600">$${data.coins}</p>
+                    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">CMSN: ${data.commission}</p>
+                </td>
+                <td class="p-4 text-center">
+                    ${isPending 
+                        ? `<button class="confirm-single-btn px-4 py-2 bg-green-500 text-white text-xs font-bold rounded-lg shadow-sm hover:-translate-y-0.5 transition" 
+                            data-id="${pack.id}" data-uid="${data.userId}" data-coins="${data.coins}" data-commission="${data.commission || 0}" data-wallet="${data.walletType}">Push Confirm</button>` 
+                        : `<i class="fa-solid fa-lock text-gray-300"></i>`
+                    }
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Bind single confirmed clickers
+        document.querySelectorAll('.confirm-single-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const b = e.currentTarget;
+                if(b.innerText === '...') return;
+                
+                const docId = b.getAttribute('data-id');
+                const uid = b.getAttribute('data-uid');
+                const coins = parseFloat(b.getAttribute('data-coins')) || 0;
+                const commission = parseFloat(b.getAttribute('data-commission')) || 0;
+                const walletType = b.getAttribute('data-wallet');
+
+                b.innerText = '...';
+                b.classList.replace('bg-green-500', 'bg-gray-400');
+                
+                try {
+                    // Update Local UI instantly
+                    const idx = globalPayins.findIndex((p) => p.id === docId);
+                    if (idx > -1) globalPayins[idx].data.status = 'Complete';
+                    
+                    const p1 = updateDoc(doc(db, 'payins', docId), { status: 'Complete', isCommissionClaimed: false });
+                    const p2 = updateDoc(doc(db, 'users', uid), { 
+                        totalPayin: increment(coins),
+                        dailyPayinCommission: increment(commission),
+                        commission: increment(commission),
+                        availableCredit: increment(-Math.abs(coins))
+                    });
+
+                    const qBank = query(collection(db, "users", uid, "banks"), where("walletType", "==", walletType));
+                    const bankSnap = await getDocs(qBank);
+                    if (!bankSnap.empty) {
+                        const bankDocId = bankSnap.docs[0].id;
+                        await updateDoc(doc(db, "users", uid, "banks", bankDocId), { successAmount: increment(coins) });
+                    }
+                    await Promise.all([p1, p2]);
+                    renderTable(); // Rerender
+                } catch (err) { console.error('Ledger Commit Failed', err); }
+            });
+        });
+    };
+
+    // Data Engine Subscribe (Limit 1500 to protect RAM)
+    const initDataStream = () => {
+        const pipeline = query(collection(db, "payins"), orderBy('createdAt', 'desc'), limit(1500));
+        onSnapshot(pipeline, (snap) => {
+            globalPayins = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+            renderTable();
+        });
+    };
+
+    // Attach DOM Triggers
+    document.getElementById('chk-pending').addEventListener('change', renderTable);
+    document.getElementById('date-start').addEventListener('change', renderTable);
+    document.getElementById('date-end').addEventListener('change', renderTable);
+    document.getElementById('search-raw').addEventListener('keyup', renderTable);
+
+    // Filtered Batch Complete View
+    document.getElementById('btn-complete-all').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-complete-all');
+        btn.innerText = 'Executing Data Matrix Replace...';
+        
+        const filterPending = document.getElementById('chk-pending').checked;
+        const startDate = document.getElementById('date-start').value;
+        const endDate = document.getElementById('date-end').value;
+        const rawSearch = document.getElementById('search-raw').value.trim().toLowerCase();
+
+        // Regenerate execution target map
+        let targetData = globalPayins.filter(doc => {
+            if(doc.data.status !== 'Pending') return false; 
+            if (rawSearch) {
+                if ((doc.data.orderId && doc.data.orderId.toLowerCase().includes(rawSearch)) || 
+                    (doc.data.transactionId && doc.data.transactionId.toLowerCase().includes(rawSearch))) return true;
+                return false;
+            }
+            if (startDate && endDate) {
+               if (!doc.data.dateString) return false;
+               if (doc.data.dateString >= startDate && doc.data.dateString <= endDate) return true;
+               return false;
+            }
+            return true;
+        });
+
+        if(targetData.length === 0) {
+            btn.innerText = 'Auto Complete Current View';
+            return alert("No pending blocks loaded into matrix inside current boundaries");
+        }
+
+        const confirmProceed = confirm(`DEEP WARNING Array Rewrite Sequence:\nCommit ${targetData.length} records into Database Ledger officially permanently?\n(Ensure you validated transactions)`);
+        
+        if (confirmProceed) {
+            for(const pack of targetData) {
+                const data = pack.data;
+                const docId = pack.id;
+                const uid = data.userId;
+                const coins = parseFloat(data.coins) || 0;
+                const tblComm = parseFloat(data.commission) || 0;
+                const walletType = data.walletType;
+
+                try {
+                    await updateDoc(doc(db, 'payins', docId), { status: 'Complete', isCommissionClaimed: false });
+                    await updateDoc(doc(db, 'users', uid), { 
+                        totalPayin: increment(coins),
+                        dailyPayinCommission: increment(tblComm),
+                        commission: increment(tblComm),
+                        availableCredit: increment(-Math.abs(coins))
+                    });
+                    const qBank = query(collection(db, "users", uid, "banks"), where("walletType", "==", walletType));
+                    const bankSnap = await getDocs(qBank);
+                    if (!bankSnap.empty) {
+                        const bankDocId = bankSnap.docs[0].id;
+                        await updateDoc(doc(db, "users", uid, "banks", bankDocId), { successAmount: increment(coins) });
+                    }
+                } catch(e) {}
+            }
+        }
+        
+        btn.innerText = 'Auto Complete Current View';
+    });
+
+    // Boot Up System
+    initDataStream();
+
+</script>
+</body>
+</html>
